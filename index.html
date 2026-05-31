@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>La Clique — Souvenirs entre potes · Valais</title>
+  <meta name="description" content="Les souvenirs d'une bande de 6 potes en Valais : pêche, bowling, escape game et toutes nos sorties.">
+
+  <!-- Mode sombre annoncé au navigateur -->
+  <meta name="color-scheme" content="dark">
+
+  <!-- Google Fonts (seule dépendance externe autorisée) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Active le mode "JavaScript présent" immédiatement (évite tout clignotement) -->
+  <script>document.documentElement.className += " js";</script>
+</head>
+
+<body>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       HEADER / NAVIGATION (identique sur toutes les pages)
+       👉 Si tu ajoutes une page catégorie, ajoute son lien dans ce <ul>
+          ET dans le header des autres pages (peche.html, bowling.html, ...).
+       ══════════════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <nav class="nav container" aria-label="Navigation principale">
+      <!-- ✏️ Nom du site : modifie-le ici si tu veux -->
+      <a class="brand" href="index.html">
+        La <span>Clique</span> <small>· Valais 🏔️</small>
+      </a>
+
+      <button class="nav__toggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="menu">☰</button>
+
+      <ul class="nav__links" id="menu">
+        <li><a href="index.html" aria-current="page">Accueil</a></li>
+        <li><a href="peche.html">🎣 Pêche</a></li>
+        <li><a href="bowling.html">🎳 Bowling</a></li>
+        <li><a href="escape-game.html">🔓 Escape Game</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         HERO
+         ══════════════════════════════════════════════════════════════════ -->
+    <section class="hero">
+      <div class="container hero__inner">
+        <span class="hero__tag">Depuis 2021, quelque part en Valais…</span>
+        <h1>Les souvenirs de <em>la bande</em>.</h1>
+        <p class="hero__lead">
+          Nos sorties, nos fous rires et nos exploits (plus ou moins glorieux),
+          rangés au même endroit. Un petit carnet numérique rien que pour nous six.
+        </p>
+        <div class="hero__actions">
+          <a class="btn btn--solid" href="#categories">Explorer les catégories</a>
+          <a class="btn btn--ghost" href="#recents">Derniers souvenirs</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         RÉSUMÉ VISUEL DES CATÉGORIES — une photo représentative par catégorie
+         ══════════════════════════════════════════════════════════════════ -->
+    <section class="section" id="categories">
+      <div class="container">
+        <div class="section__head reveal">
+          <span class="section__kicker">nos terrains de jeu</span>
+          <h2 class="section__title">Les catégories</h2>
+        </div>
+
+        <div class="cat-grid">
+
+          <!-- ── PÊCHE ── -->
+          <!-- ✏️ Photo représentative : remplace l'image par la tienne.
+               Tant que le fichier n'existe pas, l'emoji (data-icon) s'affiche. -->
+          <a class="cat-card reveal" href="peche.html" style="--accent:#4ea8de; --accent-soft:#7ec4ee;">
+            <div class="cat-card__photo" data-icon="🎣">
+              <img src="images/peche-cover.jpg" alt="Sortie pêche au bord d'un lac valaisan" loading="lazy" onerror="this.style.display='none'">
+            </div>
+            <div class="cat-card__label">
+              <h3>Pêche</h3>
+              <span class="cat-card__count">3 sorties</span>
+            </div>
+            <span class="cat-card__go">Voir les souvenirs →</span>
+          </a>
+
+          <!-- ── BOWLING ── -->
+          <a class="cat-card reveal" href="bowling.html" style="--accent:#ff5a5f; --accent-soft:#ff8488;">
+            <div class="cat-card__photo" data-icon="🎳">
+              <img src="images/bowling-cover.jpg" alt="Soirée bowling de la bande" loading="lazy" onerror="this.style.display='none'">
+            </div>
+            <div class="cat-card__label">
+              <h3>Bowling</h3>
+              <span class="cat-card__count">3 sorties</span>
+            </div>
+            <span class="cat-card__go">Voir les souvenirs →</span>
+          </a>
+
+          <!-- ── ESCAPE GAME ── -->
+          <a class="cat-card reveal" href="escape-game.html" style="--accent:#3ddc97; --accent-soft:#74e9b8;">
+            <div class="cat-card__photo" data-icon="🔓">
+              <img src="images/escape-game-cover.jpg" alt="La bande dans une salle d'escape game" loading="lazy" onerror="this.style.display='none'">
+            </div>
+            <div class="cat-card__label">
+              <h3>Escape Game</h3>
+              <span class="cat-card__count">3 sorties</span>
+            </div>
+            <span class="cat-card__go">Voir les souvenirs →</span>
+          </a>
+
+          <!-- ➕ NOUVELLE CATÉGORIE ?
+               Copie un bloc <a class="cat-card">…</a> ci-dessus, change le lien
+               (href), l'emoji (data-icon), le titre et la couleur (--accent /
+               --accent-soft dans le style="..."). Pense à créer la page .html
+               correspondante et à l'ajouter au menu. -->
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         DERNIERS SOUVENIRS AJOUTÉS
+         👉 COMMENT METTRE À JOUR :
+            Quand tu ajoutes un souvenir sur une page catégorie, copie-colle
+            ici la même carte (bloc <article class="card">…</article>) pour la
+            faire apparaître en page d'accueil. Garde les 3 plus récentes en
+            haut et supprime les plus anciennes de cette section.
+         ══════════════════════════════════════════════════════════════════ -->
+    <section class="section section--soft" id="recents">
+      <div class="container">
+        <div class="section__head reveal">
+          <span class="section__kicker">tout frais</span>
+          <h2 class="section__title">Derniers souvenirs</h2>
+        </div>
+
+        <div class="cards">
+
+          <!-- ▼▼▼ DÉBUT DES CARTES "DERNIERS SOUVENIRS" ▼▼▼ -->
+
+          <!-- Souvenir récent #1 (escape game) -->
+          <article class="card reveal" style="--accent:#3ddc97; --accent-soft:#74e9b8;">
+            <div class="card__photo" data-icon="🔓">
+              <img src="images/escape-manoir.jpg" alt="La bande devant la porte du manoir hanté" loading="lazy" onerror="this.style.display='none'">
+            </div>
+            <div class="card__body">
+              <span class="card__date">18 janvier 2025</span>
+              <h3 class="card__title">Le Manoir Hanté</h3>
+              <p class="card__note">
+                Sortis à 4 secondes de la fin. Noah a hurlé devant un mannequin… qui ne bougeait même pas.
+              </p>
+              <span class="card__cat">Escape Game</span>
+            </div>
+          </article>
+
+          <!-- Souvenir récent #2 (bowling) -->
+          <article class="card reveal" style="--accent:#ff5a5f; --accent-soft:#ff8488;">
+            <div class="card__photo" data-icon="🎳">
+              <img src="images/bowling-strike-minuit.jpg" alt="Strike au bowling à minuit" loading="lazy" onerror="this.style.display='none'">
+            </div>
+            <div class="card__body">
+              <span class="card__date">14 février 2025</span>
+              <h3 class="card__title">Strike de minuit</h3>
+              <p class="card__note">
+                Cally termine par un dernier strike pour voler la victoire à Alexia d'un seul point. Revanche promise.
+              </p>
+              <span class="card__cat">Bowling</span>
+            </div>
+          </article>
+
+          <!-- Souvenir récent #3 (pêche) -->
+          <article class="card reveal" style="--accent:#4ea8de; --accent-soft:#7ec4ee;">
+            <div class="card__photo" data-icon="🎣">
+              <img src="images/peche-truite-bisse.jpg" alt="Truite pêchée au bord d'un bisse" loading="lazy" onerror="this.style.display='none'">
+            </div>
+            <div class="card__body">
+              <span class="card__date">12 juillet 2024</span>
+              <h3 class="card__title">La truite du bisse</h3>
+              <p class="card__note">
+                Trois heures sans rien… puis Marcos sort une truite pile au moment de remballer. Légendaire.
+              </p>
+              <span class="card__cat">Pêche</span>
+            </div>
+          </article>
+
+          <!-- ▲▲▲ FIN DES CARTES "DERNIERS SOUVENIRS" ▲▲▲ -->
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       FOOTER (identique sur toutes les pages)
+       ✏️ Remplace les 6 prénoms ci-dessous par ceux de la vraie bande.
+       ══════════════════════════════════════════════════════════════════════ -->
+  <footer class="site-footer">
+    <div class="container">
+      <span class="handwritten">La Clique, c'est nous 👇</span>
+      <ul class="crew">
+        <li>Marcos</li>
+        <li>Lèa</li>
+        <li>Alexandre</li>
+        <li>Alexia</li>
+        <li>Noah</li>
+        <li>Cally</li>
+      </ul>
+      <p class="site-footer__meta">
+        Fait avec ❤️ en Valais · © <span data-year>2026</span> La Clique
+      </p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
