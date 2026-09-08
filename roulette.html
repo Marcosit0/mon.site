@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roulette européenne — simulateur en jetons fictifs</title>
+<style>
+  :root{
+    --bg:#12161c;
+    --panel:#1b2028;
+    --panel-2:#232935;
+    --line:#333c4a;
+    --txt:#e8ecf2;
+    --muted:#98a3b3;
+    --red:#c0392b;
+    --black:#20262e;
+    --green:#1e8449;
+    --accent:#4a90d9;
+    --accent-2:#2f6fb0;
+    --win:#4caf50;
+    --lose:#e05252;
+    --felt:#14532d;
+    --cw:46px;
+    --ch:42px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--txt);
+    font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:16px;
+  }
+  h1{font-size:20px;margin:0 0 2px}
+  h2{font-size:15px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  h3{font-size:13px;margin:14px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .wrap{max-width:1240px;margin:0 auto}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:12px}
+  .sub{color:var(--muted);font-size:12px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .col{display:flex;flex-direction:column;gap:4px}
+  label{font-size:12px;color:var(--muted)}
+  input[type=number],select{
+    background:var(--panel-2);color:var(--txt);border:1px solid var(--line);
+    border-radius:6px;padding:6px 8px;font:inherit;min-width:90px;
+  }
+  input[type=number]:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}
+  button{
+    background:var(--panel-2);color:var(--txt);border:1px solid var(--line);
+    border-radius:6px;padding:7px 12px;font:inherit;cursor:pointer;
+  }
+  button:hover:not(:disabled){border-color:var(--accent);background:#2b3341}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.primary{background:var(--accent-2);border-color:var(--accent);font-weight:600}
+  button.pending{border-color:var(--accent);background:var(--accent-2);font-weight:600}
+  input.pending{border-color:var(--accent)}
+  button.primary:hover:not(:disabled){background:var(--accent)}
+
+  /* ---------- disclaimer ---------- */
+  .warn{
+    background:#3a2d12;border:1px solid #7a5c1e;color:#f2dfae;
+    border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;
+  }
+  .warn b{color:#ffd97a}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .tabs button{padding:9px 16px;border-radius:8px 8px 0 0}
+  .tabs button[aria-selected="true"]{background:var(--accent-2);border-color:var(--accent);font-weight:600}
+  [hidden]{display:none !important}
+
+  /* ---------- stats bar ---------- */
+  .stats{display:flex;flex-wrap:wrap;gap:10px}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 14px;min-width:120px}
+  .stat .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .stat .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+  .pos{color:var(--win)} .neg{color:var(--lose)}
+
+  /* ---------- layout ---------- */
+  .game{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .game > .panel:first-child{flex:0 0 300px}
+  .game > .panel:last-child{flex:1 1 620px;min-width:0}
+
+  /* ---------- wheel ---------- */
+  .wheel-box{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .wheel-stage{position:relative;width:260px;height:260px}
+  .wheel-stage svg{width:100%;height:100%;display:block}
+  #wheelRotor{transition:transform 4s cubic-bezier(.16,.75,.2,1)}
+  #ballOrbit{
+    position:absolute;inset:0;transition:transform 4s cubic-bezier(.16,.75,.2,1);
+  }
+  #ball{
+    position:absolute;left:50%;top:9px;width:12px;height:12px;margin-left:-6px;
+    background:#fff;border-radius:50%;box-shadow:0 0 6px rgba(255,255,255,.7);
+  }
+  .pointer{
+    position:absolute;left:50%;top:-4px;margin-left:-8px;width:0;height:0;
+    border-left:8px solid transparent;border-right:8px solid transparent;
+    border-top:14px solid #f0c419;filter:drop-shadow(0 1px 2px #000);z-index:3;
+  }
+  .result-badge{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    font-size:15px;font-weight:600;min-height:34px;
+  }
+  .num-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:34px;height:34px;padding:0 8px;border-radius:8px;font-weight:700;font-size:17px;
+    border:1px solid rgba(255,255,255,.25);
+  }
+  .n-red{background:var(--red)} .n-black{background:var(--black)} .n-green{background:var(--green)}
+
+  /* ---------- history ---------- */
+  .history{display:flex;flex-wrap:wrap;gap:5px;min-height:26px}
+  .h-item{
+    width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.15);
+  }
+  .h-item.latest{outline:2px solid #f0c419;outline-offset:1px}
+
+  /* ---------- betting table ---------- */
+  .table-scroll{overflow-x:auto;padding-bottom:6px}
+  .felt{
+    position:relative;background:var(--felt);border:2px solid #0d3b1e;border-radius:8px;
+    user-select:none;
+  }
+  .cell{
+    position:absolute;display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(255,255,255,.35);font-weight:700;font-size:14px;color:#fff;
+  }
+  .cell.num{cursor:pointer}
+  .cell.num:hover,.cell.hl{box-shadow:inset 0 0 0 3px #f0c419}
+  .cell.win{animation:winpulse 1.6s ease-out}
+  @keyframes winpulse{
+    0%,100%{box-shadow:inset 0 0 0 0 rgba(255,255,255,0)}
+    20%,60%{box-shadow:inset 0 0 0 4px #fff}
+  }
+  .c-red{background:var(--red)} .c-black{background:var(--black)} .c-green{background:var(--green)}
+  .c-outside{background:rgba(0,0,0,.28);font-size:11px;letter-spacing:.02em;cursor:pointer;white-space:nowrap}
+  .c-outside:hover,.c-outside.hl{box-shadow:inset 0 0 0 3px #f0c419}
+  .spot{position:absolute;cursor:pointer;z-index:5;border-radius:3px;pointer-events:auto}
+  .spot:hover{background:rgba(240,196,25,.55);box-shadow:0 0 0 1px #f0c419}
+  .chips-layer{position:absolute;inset:0;pointer-events:none;z-index:8}
+  .chip{
+    position:absolute;transform:translate(-50%,-50%);
+    width:26px;height:26px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff6d0,#e8b400 60%,#a37c00);
+    color:#2b2200;border:2px dashed #6b5200;
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:800;font-variant-numeric:tabular-nums;
+    box-shadow:0 2px 4px rgba(0,0,0,.5);
+  }
+  .chip.big{font-size:9px}
+
+  /* ---------- chip selector ---------- */
+  .chip-pick{display:flex;gap:6px;flex-wrap:wrap}
+  .chip-pick button{
+    width:44px;height:44px;border-radius:50%;padding:0;font-weight:800;
+    background:radial-gradient(circle at 35% 30%,#fff6d0,#e8b400 60%,#a37c00);
+    color:#2b2200;border:2px dashed #6b5200;
+  }
+  .chip-pick button[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:2px}
+
+  /* ---------- bet list ---------- */
+  .betlist{max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+  .betlist table{width:100%;border-collapse:collapse;font-size:12px}
+  .betlist th,.betlist td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--line)}
+  .betlist th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);font-weight:600}
+  .betlist td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .empty{color:var(--muted);padding:10px;font-size:12px}
+
+  /* ---------- log ---------- */
+  .log{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;
+    background:#0e1218;border:1px solid var(--line);border-radius:8px;padding:8px;
+    max-height:150px;overflow:auto;
+  }
+  .log div{padding:1px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+
+  /* ---------- sim ---------- */
+  .grid-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+  #chartWrap{background:#0e1218;border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:12px}
+  #chart{width:100%;height:340px;display:block}
+  .sim-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:12px}
+  .sim-stats .stat{min-width:0}
+  .note{color:var(--muted);font-size:12px;margin-top:8px}
+
+  /* ---------- audit RNG ---------- */
+  .tbl-wrap{border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:430px}
+  .audit-table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .audit-table th,.audit-table td{
+    padding:6px 10px;border-bottom:1px solid var(--line);
+    text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+  .audit-table th{
+    position:sticky;top:0;z-index:1;background:var(--panel-2);color:var(--muted);
+    font-weight:600;font-variant-numeric:normal;
+  }
+  .audit-table th:first-child,.audit-table td:first-child{text-align:left}
+  .audit-table tbody tr:hover{background:rgba(255,255,255,.045)}
+  .audit-table .sep{border-left:1px solid var(--line)}
+  .audit-table tfoot td{background:var(--panel-2);font-weight:700;border-bottom:none}
+  .swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;border:1px solid rgba(255,255,255,.3)}
+  .out{color:#d03b3b;font-weight:700}
+  .progress{height:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;overflow:hidden;flex:1;min-width:150px}
+  .progress > div{height:100%;background:var(--accent);width:0%;transition:width .12s linear}
+  .verdict{border-radius:10px;padding:14px 16px;margin:16px 0;border:1px solid}
+  .verdict.ok{background:rgba(12,163,12,.10);border-color:#0ca30c}
+  .verdict.bad{background:rgba(208,59,59,.12);border-color:#d03b3b}
+  .verdict-title{font-size:17px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .verdict-hero{font-size:26px;font-weight:700;line-height:1.15}
+  .verdict ul{margin:8px 0 0;padding-left:20px;font-size:13px;color:var(--txt)}
+  .verdict li{margin:3px 0}
+  #auditChartWrap{position:relative;background:#0e1218;border:1px solid var(--line);border-radius:8px;padding:8px;overflow-x:auto}
+  #auditChart{display:block;width:100%;height:250px;min-width:640px}
+  .chart-tip{
+    position:absolute;pointer-events:none;opacity:0;transition:opacity .1s;z-index:10;
+    background:rgba(6,9,13,.96);border:1px solid var(--line);border-radius:6px;
+    padding:6px 9px;font-size:12px;line-height:1.45;white-space:nowrap;
+  }
+  .legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted);margin-top:8px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  .two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+  .hint{color:var(--muted);font-size:12px}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin:18px 0 6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>🎡 Roulette européenne — simulateur</h1>
+    <div class="sub">37 cases (0 à 36), un seul zéro · 100 % local · jetons fictifs uniquement</div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="k">Bankroll</div><div class="v" id="bankrollView">1000</div></div>
+    <div class="stat"><div class="k">Mise en jeu</div><div class="v" id="stakedView">0</div></div>
+    <div class="stat"><div class="k">Net</div><div class="v" id="netView">0</div></div>
+    <div class="stat"><div class="k">Tours</div><div class="v" id="spinsView">0</div></div>
+  </div>
+</header>
+
+<div class="warn">
+  <b>⚠️ Jetons fictifs, aucun argent réel.</b> Aucun compte, aucun dépôt, aucun retrait, aucune connexion.
+  Rappel mathématique : sur une roulette européenne, la présence du zéro donne un
+  <b>avantage à la maison de 2,70 %</b> (1/37). L'espérance de chaque mise vaut donc
+  <b>−2,70 % de la somme misée</b>, et <b>aucun système de mise</b> (Martingale, D'Alembert, Fibonacci,
+  Paroli…) ne change cette espérance : ces systèmes ne font que redistribuer la forme des gains et
+  des pertes. Sur le long terme, l'espérance reste <b>négative</b>.
+</div>
+
+<div class="tabs" role="tablist">
+  <button id="tabManual" role="tab" aria-selected="true" aria-controls="viewManual">🎯 Mise manuelle</button>
+  <button id="tabAuto" role="tab" aria-selected="false" aria-controls="viewAuto">🤖 Stratégie automatique</button>
+  <button id="tabAudit" role="tab" aria-selected="false" aria-controls="viewAudit">🔬 Audit RNG</button>
+</div>
+
+<!-- ============================ MODE MANUEL ============================ -->
+<section id="viewManual" role="tabpanel">
+  <div class="game">
+
+    <div class="panel">
+      <h2>Roue</h2>
+      <div class="wheel-box">
+        <div class="wheel-stage">
+          <div class="pointer"></div>
+          <svg viewBox="-130 -130 260 260" aria-hidden="true">
+            <circle r="126" fill="#0d1116" stroke="#3a3020" stroke-width="4"/>
+            <g id="wheelRotor"></g>
+            <circle r="46" fill="#1b2028" stroke="#3a3020" stroke-width="2"/>
+          </svg>
+          <div id="ballOrbit"><div id="ball"></div></div>
+        </div>
+        <div class="result-badge" id="resultBadge"><span class="hint">Placez vos mises puis lancez</span></div>
+        <button class="primary" id="spinBtn" style="width:100%;padding:11px;font-size:15px">🎲 Lancer la roue</button>
+      </div>
+
+      <h3>Jeton sélectionné</h3>
+      <div class="chip-pick" id="chipPick"></div>
+
+      <h3>Actions</h3>
+      <div class="row">
+        <button id="undoBtn">↩︎ Annuler</button>
+        <button id="clearBtn">🗑️ Effacer</button>
+        <button id="repeatBtn">🔁 Répéter</button>
+        <button id="doubleBtn">×2 Doubler</button>
+      </div>
+
+      <h3>Bankroll de départ</h3>
+      <div class="row">
+        <input type="number" id="startBankroll" value="1000" min="1" step="1" style="width:110px">
+        <button id="resetBtn" title="Applique la bankroll de départ et remet la partie à zéro">Appliquer</button>
+      </div>
+      <div class="hint" id="bankrollHint" style="margin-top:6px">
+        Remet aussi à zéro les mises, l'historique et le journal.
+      </div>
+
+      <h3>Historique (20 derniers)</h3>
+      <div class="history" id="history"><span class="hint">aucun tirage</span></div>
+      <div class="row" style="margin-top:8px">
+        <span class="hint" id="colorCounts">—</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Table de mises</h2>
+      <p class="hint" style="margin-top:-4px">
+        Clic gauche = poser le jeton sélectionné · Clic droit = retirer la mise ·
+        survolez une ligne / un coin pour voir les numéros couverts (cheval, transversale, carré, sixain).
+      </p>
+      <div class="table-scroll">
+        <div class="felt" id="felt"></div>
+      </div>
+
+      <h3>Mises en cours (<span id="betCount">0</span>)</h3>
+      <div class="betlist" id="betList"></div>
+
+      <h3>Journal des tours</h3>
+      <div class="log" id="log"><div class="hint">—</div></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================ MODE AUTO ============================ -->
+<section id="viewAuto" role="tabpanel" hidden>
+  <div class="panel">
+    <h2>Simulation d'une stratégie de mise sur chance simple</h2>
+    <div class="grid-form">
+      <div class="col">
+        <label for="stratSel">Stratégie</label>
+        <select id="stratSel">
+          <option value="martingale">Martingale (×2 après une perte)</option>
+          <option value="dalembert">D'Alembert (+1 / −1 unité)</option>
+          <option value="fibonacci">Fibonacci (avance sur perte, −2 crans sur gain)</option>
+          <option value="paroli">Paroli (×2 après un gain)</option>
+          <option value="flat">Mise plate (référence, aucun système)</option>
+        </select>
+      </div>
+      <div class="col">
+        <label for="betTarget">Chance simple jouée</label>
+        <select id="betTarget">
+          <option value="red">Rouge</option>
+          <option value="black">Noir</option>
+          <option value="even">Pair</option>
+          <option value="odd">Impair</option>
+          <option value="low">Manque (1-18)</option>
+          <option value="high">Passe (19-36)</option>
+        </select>
+      </div>
+      <div class="col">
+        <label for="simBankroll">Bankroll de départ (jetons)</label>
+        <input type="number" id="simBankroll" value="1000" min="1" step="1">
+      </div>
+      <div class="col">
+        <label for="baseBet">Mise de base (unité)</label>
+        <input type="number" id="baseBet" value="10" min="1" step="1">
+      </div>
+      <div class="col">
+        <label for="rounds">Nombre de tours</label>
+        <input type="number" id="rounds" value="1000" min="1" max="200000" step="1">
+      </div>
+      <div class="col">
+        <label for="stopLoss">Stop-loss (bankroll plancher)</label>
+        <input type="number" id="stopLoss" value="0" min="0" step="1">
+      </div>
+      <div class="col">
+        <label for="stopWin">Stop-win (bankroll objectif)</label>
+        <input type="number" id="stopWin" value="2000" min="0" step="1">
+      </div>
+      <div class="col">
+        <label for="maxBet">Mise maximale (0 = illimitée)</label>
+        <input type="number" id="maxBet" value="0" min="0" step="1">
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" id="runSimBtn">▶️ Lancer la simulation</button>
+      <button id="runManySimBtn">📊 Lancer 500 simulations (statistiques)</button>
+      <span class="hint">Le calcul est instantané, sans animation.</span>
+    </div>
+    <p class="note">
+      La simulation est un bac à sable indépendant : elle n'affecte pas la bankroll du mode manuel.
+      Le zéro fait perdre les chances simples (pas de règle « en prison » / « partage »), d'où
+      l'avantage maison de 2,70 %.
+    </p>
+
+    <div id="chartWrap"><canvas id="chart"></canvas></div>
+    <div class="sim-stats" id="simStats"></div>
+    <div id="multiOut"></div>
+  </div>
+</section>
+
+<!-- ============================ AUDIT RNG ============================ -->
+<section id="viewAudit" role="tabpanel" hidden>
+  <div class="panel">
+    <h2>Audit du générateur aléatoire</h2>
+    <p class="hint" style="margin-top:-4px;max-width:900px">
+      Ce panneau est <b>totalement indépendant du jeu</b> : aucune mise, aucune bankroll, aucune stratégie.
+      Il tire uniquement des numéros bruts avec <b>exactement la même fonction <code>spinNumber()</code></b>
+      que celle utilisée par la roue et par les simulations, puis compare les fréquences observées
+      aux fréquences théoriques d'une roulette européenne parfaitement équilibrée.
+    </p>
+
+    <div class="row" style="margin-top:12px">
+      <div class="col">
+        <label for="auditN">Nombre de tirages</label>
+        <input type="number" id="auditN" value="1000000" min="1000" max="20000000" step="1000" style="width:150px">
+      </div>
+      <button class="primary" id="runAuditBtn" style="align-self:flex-end">🔬 Lancer l'audit</button>
+      <div class="progress" id="auditProgress" style="align-self:flex-end;margin-bottom:8px"><div></div></div>
+      <span class="hint" id="auditStatus" style="align-self:flex-end;margin-bottom:6px">prêt</span>
+    </div>
+
+    <div id="auditOut"></div>
+  </div>
+</section>
+
+<footer>
+  Simulateur pédagogique hors-ligne · aucune donnée envoyée, aucun suivi, aucun argent réel.<br>
+  Jouer n'est jamais une source de revenus : l'espérance mathématique est négative sur la durée.
+</footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   1. CONSTANTES DE LA ROULETTE EUROPÉENNE
+   ===================================================================== */
+
+// Ordre réel des numéros sur une roue européenne (sens horaire depuis le 0).
+const WHEEL_ORDER = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,
+                     5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+
+const RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+
+const colorOf = n => (n === 0 ? "green" : RED.has(n) ? "red" : "black");
+const colorLabel = n => ({green:"Vert", red:"Rouge", black:"Noir"})[colorOf(n)];
+
+/* =====================================================================
+   2. GÉNÉRATEUR ALÉATOIRE UNIFORME SUR 0..36
+   crypto.getRandomValues + rejet des valeurs qui biaiseraient le modulo.
+   ===================================================================== */
+
+const cryptoObj = (typeof crypto !== "undefined" && crypto.getRandomValues) ? crypto : null;
+const _pool = cryptoObj ? new Uint32Array(256) : null;
+let _poolIdx = _pool ? _pool.length : 0;
+
+function rand32(){
+  if(!cryptoObj) return Math.floor(Math.random() * 4294967296);
+  if(_poolIdx >= _pool.length){ cryptoObj.getRandomValues(_pool); _poolIdx = 0; }
+  return _pool[_poolIdx++];
+}
+
+// Uniforme strict sur [0, 36] : 4294967296 % 37 !== 0, on rejette la queue.
+const LIMIT = 4294967296 - (4294967296 % 37);
+function spinNumber(){
+  let r;
+  do { r = rand32(); } while (r >= LIMIT);
+  return r % 37;
+}
+
+/* =====================================================================
+   3. DÉFINITION DES MISES ET DES GAINS
+   ===================================================================== */
+
+const PAYOUT = {
+  straight: 35,   // plein            : 1 numéro
+  split:    17,   // cheval           : 2 numéros
+  street:   11,   // transversale     : 3 numéros
+  trio:     11,   // 0-1-2 / 0-2-3    : 3 numéros
+  corner:    8,   // carré            : 4 numéros
+  basket:    8,   // 0-1-2-3          : 4 numéros
+  sixline:   5,   // sixain           : 6 numéros
+  column:    2,   // colonne          : 12 numéros
+  dozen:     2,   // douzaine         : 12 numéros
+  even:      1    // chances simples  : 18 numéros
+};
+
+const range = (a,b) => Array.from({length:b-a+1},(_,i)=>a+i);
+const REDS  = [...RED].sort((a,b)=>a-b);
+const BLACKS= range(1,36).filter(n=>!RED.has(n));
+
+const SIMPLE_CHANCES = {
+  red:  {label:"Rouge",         numbers:REDS},
+  black:{label:"Noir",          numbers:BLACKS},
+  even: {label:"Pair",          numbers:range(1,36).filter(n=>n%2===0)},
+  odd:  {label:"Impair",        numbers:range(1,36).filter(n=>n%2===1)},
+  low:  {label:"Manque (1-18)", numbers:range(1,18)},
+  high: {label:"Passe (19-36)", numbers:range(19,36)}
+};
+
+/* =====================================================================
+   4. CONSTRUCTION DE LA TABLE DE MISES (vraie disposition)
+   ===================================================================== */
+
+const CW = 46, CH = 42, ZW = 46;                 // largeur case, hauteur case, largeur du 0
+const GX = ZW;                                   // origine X de la grille des 36 numéros
+const TABLE_W = ZW + 12*CW + CW;                 // + colonne "2 à 1"
+const TABLE_H = 5*CH;                            // 3 rangées + douzaines + chances simples
+
+// Numéro situé en colonne c (1..12), rangée r (1..3, 1 = rangée du haut : 3,6,9...)
+const numAt = (c,r) => (c-1)*3 + (4-r);
+const cellX = c => GX + (c-1)*CW;
+const cellY = r => (r-1)*CH;
+
+const felt = document.getElementById("felt");
+felt.style.width  = TABLE_W + "px";
+felt.style.height = TABLE_H + "px";
+
+const numberCells = new Map(); // numéro -> élément DOM (pour surlignage)
+
+function mkCell(cls, text, x, y, w, h){
+  const d = document.createElement("div");
+  d.className = "cell " + cls;
+  d.textContent = text;
+  d.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+  felt.appendChild(d);
+  return d;
+}
+
+// --- cases numérotées ---------------------------------------------------
+const zeroCell = mkCell("num c-green", "0", 0, 0, ZW, 3*CH);
+numberCells.set(0, zeroCell);
+for(let c=1;c<=12;c++){
+  for(let r=1;r<=3;r++){
+    const n = numAt(c,r);
+    const el = mkCell("num c-" + colorOf(n), String(n), cellX(c), cellY(r), CW, CH);
+    numberCells.set(n, el);
+  }
+}
+
+// --- mises extérieures --------------------------------------------------
+const outsideCells = [];
+function mkOutside(text, x, y, w, h, bet){
+  const el = mkCell("c-outside", text, x, y, w, h);
+  el.dataset.betKey = bet.key;
+  outsideCells.push({el, bet});
+  return el;
+}
+
+const ALL_BETS = new Map();  // key -> définition de mise
+function defBet(type, numbers, label, cx, cy){
+  const key = type + ":" + numbers.join("-");
+  const bet = {key, type, numbers, label, payout:PAYOUT[type], cx, cy};
+  ALL_BETS.set(key, bet);
+  return bet;
+}
+
+// Colonnes "2 à 1" (à droite de chaque rangée)
+for(let r=1;r<=3;r++){
+  const nums = [];
+  for(let c=1;c<=12;c++) nums.push(numAt(c,r));
+  nums.sort((a,b)=>a-b);
+  const x = GX + 12*CW, y = cellY(r);
+  const bet = defBet("column", nums, `Colonne ${4-r} (2:1)`, x + CW/2, y + CH/2);
+  mkOutside("2:1", x, y, CW, CH, bet);
+}
+
+// Douzaines
+[["1-12",1],["13-24",2],["25-36",3]].forEach(([txt,i])=>{
+  const nums = range((i-1)*12+1, i*12);
+  const x = GX + (i-1)*4*CW, y = 3*CH, w = 4*CW;
+  const bet = defBet("dozen", nums, `${txt} (2:1)`, x + w/2, y + CH/2);
+  mkOutside(txt, x, y, w, CH, bet);
+});
+
+// Chances simples
+[["MANQUE 1-18","low"],["PAIR","even"],["ROUGE","red"],
+ ["NOIR","black"],["IMPAIR","odd"],["PASSE 19-36","high"]].forEach(([txt,keyName],i)=>{
+  const sc = SIMPLE_CHANCES[keyName];
+  const x = GX + i*2*CW, y = 4*CH, w = 2*CW;
+  const bet = defBet("even", sc.numbers, `${sc.label} (1:1)`, x + w/2, y + CH/2);
+  const el = mkOutside(txt, x, y, w, CH, bet);
+  if(keyName==="red")   el.style.background = "var(--red)";
+  if(keyName==="black") el.style.background = "var(--black)";
+});
+
+// --- points de mise superposés (chevaux, carrés, transversales, sixains) --
+const spotsLayer = document.createElement("div");
+spotsLayer.style.cssText = "position:absolute;inset:0;pointer-events:none";
+felt.appendChild(spotsLayer);
+
+function mkSpot(bet, cx, cy, w, h){
+  const s = document.createElement("div");
+  s.className = "spot";
+  s.dataset.betKey = bet.key;
+  s.title = bet.label;
+  s.style.cssText = `left:${cx-w/2}px;top:${cy-h/2}px;width:${w}px;height:${h}px`;
+  spotsLayer.appendChild(s);
+}
+
+const T = 16;  // épaisseur des zones "sur la ligne"
+
+// Chevaux horizontaux : n et n+3 (colonnes voisines)
+for(let c=1;c<=11;c++) for(let r=1;r<=3;r++){
+  const nums = [numAt(c,r), numAt(c+1,r)].sort((a,b)=>a-b);
+  const cx = GX + c*CW, cy = cellY(r) + CH/2;
+  mkSpot(defBet("split", nums, `Cheval ${nums.join("/")} (17:1)`, cx, cy), cx, cy, T, CH-T);
+}
+// Chevaux verticaux : n et n+1 (même colonne)
+for(let c=1;c<=12;c++) for(let r=1;r<=2;r++){
+  const nums = [numAt(c,r), numAt(c,r+1)].sort((a,b)=>a-b);
+  const cx = cellX(c) + CW/2, cy = r*CH;
+  mkSpot(defBet("split", nums, `Cheval ${nums.join("/")} (17:1)`, cx, cy), cx, cy, CW-T, T);
+}
+// Carrés : 4 numéros
+for(let c=1;c<=11;c++) for(let r=1;r<=2;r++){
+  const nums = [numAt(c,r),numAt(c+1,r),numAt(c,r+1),numAt(c+1,r+1)].sort((a,b)=>a-b);
+  const cx = GX + c*CW, cy = r*CH;
+  mkSpot(defBet("corner", nums, `Carré ${nums.join("/")} (8:1)`, cx, cy), cx, cy, T, T);
+}
+// Transversales pleines : 3 numéros d'une colonne (bord bas de la grille)
+for(let c=1;c<=12;c++){
+  const nums = [numAt(c,1),numAt(c,2),numAt(c,3)].sort((a,b)=>a-b);
+  const cx = cellX(c) + CW/2, cy = 3*CH;
+  mkSpot(defBet("street", nums, `Transversale ${nums[0]}-${nums[2]} (11:1)`, cx, cy), cx, cy, CW-T, T);
+}
+// Sixains : 6 numéros (deux transversales)
+for(let c=1;c<=11;c++){
+  const nums = [numAt(c,1),numAt(c,2),numAt(c,3),
+                numAt(c+1,1),numAt(c+1,2),numAt(c+1,3)].sort((a,b)=>a-b);
+  const cx = GX + c*CW, cy = 3*CH;
+  mkSpot(defBet("sixline", nums, `Sixain ${nums[0]}-${nums[5]} (5:1)`, cx, cy), cx, cy, T, T);
+}
+// Mises impliquant le zéro
+for(let r=1;r<=3;r++){
+  const n = numAt(1,r), nums = [0,n];
+  const cx = GX, cy = cellY(r) + CH/2;
+  mkSpot(defBet("split", nums, `Cheval 0/${n} (17:1)`, cx, cy), cx, cy, T, CH-T);
+}
+mkSpot(defBet("basket",[0,1,2,3],"Carré 0/1/2/3 (8:1)", GX, 0), GX, 0, T, T);
+mkSpot(defBet("trio",[0,2,3],"Transversale 0/2/3 (11:1)", GX, CH), GX, CH, T, T);
+mkSpot(defBet("trio",[0,1,2],"Transversale 0/1/2 (11:1)", GX, 2*CH), GX, 2*CH, T, T);
+
+// Pleins (toute la case, sous les points de mise)
+numberCells.forEach((el, n) => {
+  const bet = defBet("straight", [n], `Plein ${n} (35:1)`, 
+                     n===0 ? ZW/2 : cellX(Math.ceil(n/3)) + CW/2,
+                     n===0 ? 1.5*CH : cellY(3-((n-1)%3)) + CH/2);
+  el.dataset.betKey = bet.key;
+});
+
+// Couche des jetons posés
+const chipsLayer = document.createElement("div");
+chipsLayer.className = "chips-layer";
+felt.appendChild(chipsLayer);
+
+/* =====================================================================
+   5. ÉTAT DU JEU (mode manuel)
+   ===================================================================== */
+
+const state = {
+  startBankroll: 1000,
+  bankroll: 1000,
+  bets: new Map(),        // key -> montant
+  undoStack: [],
+  lastBets: null,
+  history: [],
+  spins: 0,
+  spinning: false,
+  chip: 10
+};
+
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n*100)/100;
+const totalStaked = () => [...state.bets.values()].reduce((a,b)=>a+b, 0);
+
+function renderStats(){
+  $("bankrollView").textContent = fmt(state.bankroll);
+  $("stakedView").textContent = fmt(totalStaked());
+  const net = fmt(state.bankroll + totalStaked() - state.startBankroll);
+  const nv = $("netView");
+  nv.textContent = (net > 0 ? "+" : "") + net;
+  nv.className = "v " + (net > 0 ? "pos" : net < 0 ? "neg" : "");
+  $("spinsView").textContent = state.spins;
+  $("betCount").textContent = state.bets.size;
+  $("spinBtn").disabled = state.spinning || state.bets.size === 0;
+}
+
+function renderChips(){
+  chipsLayer.innerHTML = "";
+  state.bets.forEach((amount, key) => {
+    const bet = ALL_BETS.get(key);
+    const c = document.createElement("div");
+    c.className = "chip" + (amount >= 1000 ? " big" : "");
+    c.style.left = bet.cx + "px";
+    c.style.top  = bet.cy + "px";
+    c.textContent = amount >= 10000 ? Math.round(amount/1000)+"k" : amount;
+    chipsLayer.appendChild(c);
+  });
+}
+
+function renderBetList(){
+  const host = $("betList");
+  if(state.bets.size === 0){
+    host.innerHTML = '<div class="empty">Aucune mise posée. Cliquez sur la table.</div>';
+    return;
+  }
+  const rows = [...state.bets.entries()].map(([key, amount]) => {
+    const b = ALL_BETS.get(key);
+    return `<tr><td>${b.label}</td><td class="num">${amount}</td><td class="num">${amount*(b.payout+1)}</td></tr>`;
+  }).join("");
+  host.innerHTML =
+    `<table><thead><tr><th>Mise</th><th class="num">Jetons</th><th class="num">Retour si gagnante</th></tr></thead>
+     <tbody>${rows}</tbody></table>`;
+}
+
+function renderHistory(){
+  const host = $("history");
+  if(state.history.length === 0){ host.innerHTML = '<span class="hint">aucun tirage</span>'; }
+  else {
+    host.innerHTML = state.history.slice(0,20).map((n,i) =>
+      `<div class="h-item c-${colorOf(n)}${i===0?" latest":""}">${n}</div>`).join("");
+  }
+  const h = state.history;
+  const cnt = c => h.filter(n => colorOf(n)===c).length;
+  $("colorCounts").textContent = h.length
+    ? `Sur ${h.length} tirage(s) : ${cnt("red")} rouge · ${cnt("black")} noir · ${cnt("green")} zéro`
+    : "—";
+}
+
+function renderAll(){ renderStats(); renderChips(); renderBetList(); renderHistory(); }
+
+/* =====================================================================
+   6. POSE DES MISES
+   ===================================================================== */
+
+function placeBet(key, amount){
+  if(state.spinning) return;
+  const bet = ALL_BETS.get(key);
+  if(!bet) return;
+  if(amount > state.bankroll){
+    log(`Bankroll insuffisante : il reste ${fmt(state.bankroll)} jeton(s).`);
+    return;
+  }
+  state.bankroll -= amount;
+  state.bets.set(key, (state.bets.get(key) || 0) + amount);
+  state.undoStack.push({key, amount});
+  renderAll();
+}
+
+function removeBet(key){
+  if(state.spinning) return;
+  const amount = state.bets.get(key);
+  if(!amount) return;
+  state.bankroll += amount;
+  state.bets.delete(key);
+  state.undoStack = state.undoStack.filter(u => u.key !== key);
+  renderAll();
+}
+
+function clearBets(){
+  if(state.spinning) return;
+  state.bankroll += totalStaked();
+  state.bets.clear();
+  state.undoStack = [];
+  renderAll();
+}
+
+function highlight(key, on){
+  const bet = ALL_BETS.get(key);
+  if(!bet) return;
+  bet.numbers.forEach(n => numberCells.get(n)?.classList.toggle("hl", on));
+  outsideCells.forEach(o => { if(o.bet.key === key) o.el.classList.toggle("hl", on); });
+}
+
+felt.addEventListener("click", e => {
+  const key = e.target.dataset && e.target.dataset.betKey;
+  if(key) placeBet(key, state.chip);
+});
+felt.addEventListener("contextmenu", e => {
+  const key = e.target.dataset && e.target.dataset.betKey;
+  if(key){ e.preventDefault(); removeBet(key); }
+});
+felt.addEventListener("mouseover", e => {
+  const key = e.target.dataset && e.target.dataset.betKey;
+  if(key) highlight(key, true);
+});
+felt.addEventListener("mouseout", e => {
+  const key = e.target.dataset && e.target.dataset.betKey;
+  if(key) highlight(key, false);
+});
+
+// Sélecteur de jetons
+const CHIP_VALUES = [1, 5, 10, 25, 100, 500];
+CHIP_VALUES.forEach(v => {
+  const b = document.createElement("button");
+  b.textContent = v;
+  b.setAttribute("aria-pressed", v === state.chip ? "true" : "false");
+  b.addEventListener("click", () => {
+    state.chip = v;
+    [...$("chipPick").children].forEach(c =>
+      c.setAttribute("aria-pressed", c === b ? "true" : "false"));
+  });
+  $("chipPick").appendChild(b);
+});
+
+$("undoBtn").addEventListener("click", () => {
+  if(state.spinning) return;
+  const last = state.undoStack.pop();
+  if(!last) return;
+  const cur = state.bets.get(last.key) || 0;
+  const back = Math.min(cur, last.amount);
+  if(back <= 0) return;
+  if(cur - back <= 0) state.bets.delete(last.key);
+  else state.bets.set(last.key, cur - back);
+  state.bankroll += back;
+  renderAll();
+});
+$("clearBtn").addEventListener("click", clearBets);
+$("repeatBtn").addEventListener("click", () => {
+  if(state.spinning || !state.lastBets) return;
+  clearBets();
+  for(const [key, amount] of state.lastBets){
+    if(amount <= state.bankroll) placeBet(key, amount);
+  }
+});
+$("doubleBtn").addEventListener("click", () => {
+  if(state.spinning) return;
+  for(const [key, amount] of [...state.bets.entries()]) placeBet(key, amount);
+});
+function applyStartBankroll(){
+  // Un champ vide revient à la valeur par défaut ; toute valeur saisie est ramenée
+  // dans le domaine autorisé (0 et les négatifs deviennent 1, pas 1000).
+  const raw = Number($("startBankroll").value);
+  const v = Number.isFinite(raw) && $("startBankroll").value.trim() !== ""
+            ? Math.max(1, Math.floor(raw)) : 1000;
+  $("startBankroll").value = v;          // renvoie la valeur retenue dans le champ
+  state.startBankroll = v;
+  state.bankroll = v;
+  state.bets.clear();
+  state.undoStack = [];
+  state.lastBets = null;
+  state.history = [];
+  state.spins = 0;
+  $("log").innerHTML = '<div class="hint">—</div>';
+  $("resultBadge").innerHTML = '<span class="hint">Placez vos mises puis lancez</span>';
+  markBankrollPending();
+  renderAll();
+}
+
+// Tant que la valeur saisie n'est pas appliquée, le champ et le bouton le signalent :
+// sans cela, taper un nombre semble n'avoir aucun effet.
+function markBankrollPending(){
+  const field = $("startBankroll");
+  const pending = Math.floor(Number(field.value)) !== state.startBankroll;
+  field.classList.toggle("pending", pending);
+  $("resetBtn").classList.toggle("pending", pending);
+  const raw = Number(field.value);
+  const shown = Number.isFinite(raw) && field.value.trim() !== ""
+                ? Math.max(1, Math.floor(raw)) : 1000;
+  $("bankrollHint").textContent = pending
+    ? `Non appliqué — cliquez sur « Appliquer » (ou touche Entrée) pour passer à ${shown} jetons. Remet la partie à zéro.`
+    : "Remet aussi à zéro les mises, l'historique et le journal.";
+}
+
+$("resetBtn").addEventListener("click", applyStartBankroll);
+$("startBankroll").addEventListener("input", markBankrollPending);
+$("startBankroll").addEventListener("keydown", e => {
+  if(e.key === "Enter"){ e.preventDefault(); applyStartBankroll(); }
+});
+
+function log(msg){
+  const host = $("log");
+  if(host.firstChild && host.firstChild.className === "hint") host.innerHTML = "";
+  const d = document.createElement("div");
+  d.textContent = msg;
+  host.prepend(d);
+  while(host.childNodes.length > 100) host.lastChild.remove();
+}
+
+/* =====================================================================
+   7. LA ROUE (SVG)
+   ===================================================================== */
+
+const SECTOR = 360 / 37;
+const rotor = document.getElementById("wheelRotor");
+const NS = "http://www.w3.org/2000/svg";
+
+WHEEL_ORDER.forEach((n, i) => {
+  const a0 = (i - 0.5) * SECTOR - 90;
+  const a1 = (i + 0.5) * SECTOR - 90;
+  const rad = a => a * Math.PI / 180;
+  const R = 122, r = 48;
+  const p = document.createElementNS(NS, "path");
+  p.setAttribute("d", [
+    "M", R*Math.cos(rad(a0)), R*Math.sin(rad(a0)),
+    "A", R, R, 0, 0, 1, R*Math.cos(rad(a1)), R*Math.sin(rad(a1)),
+    "L", r*Math.cos(rad(a1)), r*Math.sin(rad(a1)),
+    "A", r, r, 0, 0, 0, r*Math.cos(rad(a0)), r*Math.sin(rad(a0)), "Z"
+  ].join(" "));
+  const col = colorOf(n);
+  // Noir éclairci sur la roue : sur fond sombre, #20262e se confondrait avec l'arrière-plan.
+  p.setAttribute("fill", col === "red" ? "#c0392b" : col === "black" ? "#2f3742" : "#1e8449");
+  p.setAttribute("stroke", "#8a7440");
+  p.setAttribute("stroke-width", "0.8");
+  rotor.appendChild(p);
+
+  const t = document.createElementNS(NS, "text");
+  const mid = i * SECTOR - 90, tr = 100;
+  t.setAttribute("x", tr * Math.cos(rad(mid)));
+  t.setAttribute("y", tr * Math.sin(rad(mid)));
+  t.setAttribute("fill", "#fff");
+  t.setAttribute("font-size", "11");
+  t.setAttribute("font-weight", "700");
+  t.setAttribute("text-anchor", "middle");
+  t.setAttribute("dominant-baseline", "central");
+  t.setAttribute("transform", `rotate(${i * SECTOR} ${tr*Math.cos(rad(mid))} ${tr*Math.sin(rad(mid))})`);
+  t.textContent = n;
+  rotor.appendChild(t);
+});
+
+let wheelAngle = 0, ballAngle = 0;
+const ballOrbit = document.getElementById("ballOrbit");
+
+function animateTo(n){
+  const idx = WHEEL_ORDER.indexOf(n);
+  const target = -idx * SECTOR;                  // angle final (modulo 360) plaçant le secteur en haut
+  const turns  = 5 + Math.floor(Math.random() * 3);
+  // Plus petit angle congru à `target` (mod 360) situé au moins `turns` tours plus loin.
+  const floor = wheelAngle + turns * 360;
+  wheelAngle = target + Math.ceil((floor - target) / 360) * 360;
+  rotor.style.transform = `rotate(${wheelAngle}deg)`;
+  // La bille tourne en sens inverse et revient toujours sur le repère du haut.
+  ballAngle -= (turns + 2) * 360;
+  ballOrbit.style.transform = `rotate(${ballAngle}deg)`;
+}
+
+/* =====================================================================
+   8. RÉSOLUTION D'UN TOUR
+   ===================================================================== */
+
+function resolveSpin(n){
+  let returned = 0, wonCount = 0;
+  const details = [];
+  state.bets.forEach((amount, key) => {
+    const bet = ALL_BETS.get(key);
+    if(bet.numbers.includes(n)){
+      const back = amount * (bet.payout + 1);
+      returned += back;
+      wonCount++;
+      details.push(`  ✅ ${bet.label} : +${fmt(back - amount)}`);
+    } else {
+      details.push(`  ❌ ${bet.label} : −${fmt(amount)}`);
+    }
+  });
+  return {returned, wonCount, details};
+}
+
+$("spinBtn").addEventListener("click", () => {
+  if(state.spinning || state.bets.size === 0) return;
+  state.spinning = true;
+  renderStats();
+  $("resultBadge").innerHTML = '<span class="hint">La bille tourne…</span>';
+  numberCells.forEach(el => el.classList.remove("win"));
+
+  const n = spinNumber();
+  animateTo(n);
+
+  setTimeout(() => {
+    const staked = totalStaked();
+    const {returned, wonCount, details} = resolveSpin(n);
+    state.lastBets = [...state.bets.entries()];
+    state.bankroll += returned;
+    state.bets.clear();
+    state.undoStack = [];
+    state.history.unshift(n);
+    state.spins++;
+    state.spinning = false;
+
+    const net = returned - staked;
+    $("resultBadge").innerHTML =
+      `<span class="num-badge n-${colorOf(n)}">${n}</span>
+       <span>${colorLabel(n)}${n!==0 ? (n%2===0?" · Pair":" · Impair") + (n<=18?" · Manque":" · Passe") : ""}</span>`;
+
+    log(`Tour ${state.spins} — sorti : ${n} (${colorLabel(n)}) · misé ${fmt(staked)} · ` +
+        `retour ${fmt(returned)} · net ${net>=0?"+":""}${fmt(net)} · ${wonCount} mise(s) gagnante(s)`);
+    details.forEach(d => log(d));
+
+    numberCells.get(n)?.classList.add("win");
+    renderAll();
+  }, 4100);
+});
+
+/* =====================================================================
+   9. SIMULATION AUTOMATIQUE
+   ===================================================================== */
+
+const FIB = (() => { const f=[1,1]; while(f.length < 200) f.push(f[f.length-1]+f[f.length-2]); return f; })();
+
+function nextBet(strategy, st, base){
+  switch(strategy){
+    case "martingale": return base * Math.pow(2, Math.min(st.losses, 40));
+    case "dalembert":  return base * st.units;
+    case "fibonacci":  return base * FIB[Math.min(st.fib, FIB.length - 1)];
+    case "paroli":     return base * Math.pow(2, Math.min(st.wins, 40));
+    default:           return base;
+  }
+}
+
+function updateStrategy(strategy, st, won){
+  switch(strategy){
+    case "martingale": st.losses = won ? 0 : st.losses + 1; break;
+    case "dalembert":  st.units  = won ? Math.max(1, st.units - 1) : st.units + 1; break;
+    case "fibonacci":  st.fib    = won ? Math.max(0, st.fib - 2) : st.fib + 1; break;
+    case "paroli":     st.wins   = won ? st.wins + 1 : 0; break;
+  }
+}
+
+function runSimulation(cfg){
+  const winning = new Set(SIMPLE_CHANCES[cfg.target].numbers);
+  let bankroll = cfg.bankroll;
+  const curve = new Float64Array(cfg.rounds + 1);
+  curve[0] = bankroll;
+  const st = {losses:0, wins:0, units:1, fib:0};
+  let played = 0, wins = 0, zeros = 0, peak = bankroll, trough = bankroll, maxDD = 0, maxBet = 0;
+  let stopReason = "Nombre de tours atteint";
+
+  for(let i = 1; i <= cfg.rounds; i++){
+    let bet = nextBet(cfg.strategy, st, cfg.base);
+    if(cfg.maxBet > 0) bet = Math.min(bet, cfg.maxBet);
+    if(bet > bankroll){
+      if(bankroll <= 0){ stopReason = "Bankroll épuisée (ruine)"; curve[i] = bankroll; break; }
+      bet = bankroll;                 // dernier tour : on mise tout ce qui reste
+      stopReason = "Bankroll insuffisante pour la mise du système";
+    }
+    maxBet = Math.max(maxBet, bet);
+
+    const n = spinNumber();
+    if(n === 0) zeros++;
+    const won = winning.has(n);
+    bankroll += won ? bet : -bet;
+    if(won) wins++;
+    updateStrategy(cfg.strategy, st, won);
+
+    played = i;
+    curve[i] = bankroll;
+    peak = Math.max(peak, bankroll);
+    trough = Math.min(trough, bankroll);
+    maxDD = Math.max(maxDD, peak - bankroll);
+
+    if(bankroll <= 0){ stopReason = "Bankroll épuisée (ruine)"; break; }
+    if(cfg.stopLoss > 0 && bankroll <= cfg.stopLoss){ stopReason = `Stop-loss atteint (≤ ${cfg.stopLoss})`; break; }
+    if(cfg.stopWin  > 0 && bankroll >= cfg.stopWin ){ stopReason = `Stop-win atteint (≥ ${cfg.stopWin})`; break; }
+  }
+
+  return {curve: curve.subarray(0, played + 1), played, wins, zeros, bankroll,
+          peak, trough, maxDD, maxBet, stopReason, cfg};
+}
+
+/* ---------- graphique en courbe (canvas 2D, sans librairie) ---------- */
+let lastDrawn = null;
+function drawChart(curve, cfg){
+  lastDrawn = {curve, cfg};
+  const cv = $("chart");
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = cv.clientHeight;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+
+  const PL = 62, PR = 12, PT = 14, PB = 28;
+  const iw = W - PL - PR, ih = H - PT - PB;
+
+  let lo = Infinity, hi = -Infinity;
+  for(let i = 0; i < curve.length; i++){ if(curve[i] < lo) lo = curve[i]; if(curve[i] > hi) hi = curve[i]; }
+  lo = Math.min(lo, cfg.bankroll); hi = Math.max(hi, cfg.bankroll);
+  if(hi === lo){ hi += 1; lo -= 1; }
+  const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+
+  const X = i => PL + (curve.length <= 1 ? 0 : (i / (curve.length - 1)) * iw);
+  const Y = v => PT + ih - ((v - lo) / (hi - lo)) * ih;
+
+  // grille + axes
+  g.strokeStyle = "#2a3240"; g.fillStyle = "#98a3b3";
+  g.font = "11px system-ui,sans-serif"; g.lineWidth = 1;
+  for(let k = 0; k <= 5; k++){
+    const v = lo + (hi - lo) * k / 5, y = Y(v);
+    g.beginPath(); g.moveTo(PL, y); g.lineTo(W - PR, y); g.stroke();
+    g.textAlign = "right"; g.textBaseline = "middle";
+    g.fillText(Math.round(v).toLocaleString("fr-FR"), PL - 6, y);
+  }
+  g.textAlign = "center"; g.textBaseline = "top";
+  for(let k = 0; k <= 4; k++){
+    const i = Math.round((curve.length - 1) * k / 4);
+    g.fillText(i.toLocaleString("fr-FR"), X(i), PT + ih + 6);
+  }
+  g.fillText("tours", PL + iw / 2, PT + ih + 18);
+
+  // ligne de bankroll initiale
+  g.strokeStyle = "#6b7686"; g.setLineDash([4, 4]);
+  g.beginPath(); g.moveTo(PL, Y(cfg.bankroll)); g.lineTo(W - PR, Y(cfg.bankroll)); g.stroke();
+  g.setLineDash([]);
+
+  // seuils stop-loss / stop-win
+  const seuil = (v, color, label) => {
+    if(v <= 0 || v < lo || v > hi) return;
+    g.strokeStyle = color; g.setLineDash([2, 3]);
+    g.beginPath(); g.moveTo(PL, Y(v)); g.lineTo(W - PR, Y(v)); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = color; g.textAlign = "left"; g.textBaseline = "bottom";
+    g.fillText(label, PL + 4, Y(v) - 2);
+    g.fillStyle = "#98a3b3";
+  };
+  seuil(cfg.stopWin, "#4caf50", "stop-win");
+  seuil(cfg.stopLoss, "#e05252", "stop-loss");
+
+  // courbe (échantillonnée par colonne de pixels pour rester rapide sur 100 000 tours)
+  const finalUp = curve[curve.length - 1] >= cfg.bankroll;
+  g.strokeStyle = finalUp ? "#4caf50" : "#e05252";
+  g.lineWidth = 1.4; g.beginPath();
+  const step = Math.max(1, Math.floor(curve.length / Math.max(1, iw * 2)));
+  g.moveTo(X(0), Y(curve[0]));
+  for(let i = step; i < curve.length; i += step) g.lineTo(X(i), Y(curve[i]));
+  g.lineTo(X(curve.length - 1), Y(curve[curve.length - 1]));
+  g.stroke();
+}
+
+function statTile(k, v, cls){
+  return `<div class="stat"><div class="k">${k}</div><div class="v ${cls || ""}">${v}</div></div>`;
+}
+
+$("runSimBtn").addEventListener("click", () => {
+  const cfg = {
+    strategy: $("stratSel").value,
+    target:   $("betTarget").value,
+    bankroll: Math.max(1, Math.floor(Number($("simBankroll").value) || 1000)),
+    base:     Math.max(1, Math.floor(Number($("baseBet").value) || 1)),
+    rounds:   Math.min(200000, Math.max(1, Math.floor(Number($("rounds").value) || 1))),
+    stopLoss: Math.max(0, Math.floor(Number($("stopLoss").value) || 0)),
+    stopWin:  Math.max(0, Math.floor(Number($("stopWin").value) || 0)),
+    maxBet:   Math.max(0, Math.floor(Number($("maxBet").value) || 0))
+  };
+  const t0 = performance.now();
+  const res = runSimulation(cfg);
+  const ms = Math.round(performance.now() - t0);
+
+  drawChart(res.curve, cfg);
+
+  const net = res.bankroll - cfg.bankroll;
+  const winRate = res.played ? (100 * res.wins / res.played) : 0;
+  $("simStats").innerHTML =
+    statTile("Résultat net", (net >= 0 ? "+" : "") + fmt(net), net >= 0 ? "pos" : "neg") +
+    statTile("Bankroll finale", fmt(res.bankroll)) +
+    statTile("Tours joués", res.played.toLocaleString("fr-FR")) +
+    statTile("Taux de gain", winRate.toFixed(2) + " %") +
+    statTile("Zéros sortis", res.zeros.toLocaleString("fr-FR")) +
+    statTile("Pic de bankroll", fmt(res.peak)) +
+    statTile("Plus bas", fmt(res.trough)) +
+    statTile("Drawdown max", fmt(res.maxDD), "neg") +
+    statTile("Mise la plus élevée", fmt(res.maxBet)) +
+    statTile("Arrêt", `<span style="font-size:13px">${res.stopReason}</span>`) +
+    statTile("Calcul", ms + " ms");
+
+  $("multiOut").innerHTML =
+    `<p class="note">Espérance théorique sur ${res.played.toLocaleString("fr-FR")} tours à ce rythme de mise :
+     environ <b>−2,70 %</b> du volume total misé. Un résultat positif ici n'est que de la variance —
+     relancez la simulation plusieurs fois pour le constater.</p>`;
+});
+
+$("runManySimBtn").addEventListener("click", () => {
+  const base = {
+    strategy: $("stratSel").value,
+    target:   $("betTarget").value,
+    bankroll: Math.max(1, Math.floor(Number($("simBankroll").value) || 1000)),
+    base:     Math.max(1, Math.floor(Number($("baseBet").value) || 1)),
+    rounds:   Math.min(20000, Math.max(1, Math.floor(Number($("rounds").value) || 1))),
+    stopLoss: Math.max(0, Math.floor(Number($("stopLoss").value) || 0)),
+    stopWin:  Math.max(0, Math.floor(Number($("stopWin").value) || 0)),
+    maxBet:   Math.max(0, Math.floor(Number($("maxBet").value) || 0))
+  };
+  const N = 500;
+  let ruined = 0, hitWin = 0, sum = 0, best = -Infinity, worst = Infinity, positives = 0;
+  let lastRes = null;
+  for(let s = 0; s < N; s++){
+    const r = runSimulation(base);
+    const net = r.bankroll - base.bankroll;
+    sum += net;
+    best = Math.max(best, net); worst = Math.min(worst, net);
+    if(net > 0) positives++;
+    if(r.stopReason.startsWith("Bankroll épuisée")) ruined++;
+    if(r.stopReason.startsWith("Stop-win")) hitWin++;
+    lastRes = r;
+  }
+  drawChart(lastRes.curve, base);
+  $("multiOut").innerHTML =
+    `<h3>500 simulations identiques (${base.rounds.toLocaleString("fr-FR")} tours max chacune)</h3>
+     <div class="sim-stats">
+       ${statTile("Net moyen", (sum/N >= 0 ? "+" : "") + fmt(sum/N), sum >= 0 ? "pos" : "neg")}
+       ${statTile("Sessions gagnantes", (100*positives/N).toFixed(1) + " %")}
+       ${statTile("Stop-win atteint", (100*hitWin/N).toFixed(1) + " %", "pos")}
+       ${statTile("Ruine complète", (100*ruined/N).toFixed(1) + " %", "neg")}
+       ${statTile("Meilleure session", "+" + fmt(best), "pos")}
+       ${statTile("Pire session", fmt(worst), "neg")}
+     </div>
+     <p class="note">Le graphique ci-dessus montre la <b>dernière</b> des 500 sessions.
+     Le « net moyen » converge vers <b>−2,70 % du volume misé</b> : c'est là que se voit
+     l'avantage de la maison, quelle que soit la stratégie choisie.</p>`;
+});
+
+/* =====================================================================
+   10. AUDIT DU GÉNÉRATEUR ALÉATOIRE
+   Indépendant du jeu : aucune mise, aucune bankroll, aucune stratégie.
+   Utilise la même fonction spinNumber() que la roue et les simulations.
+   ===================================================================== */
+
+/* ---- outils statistiques ------------------------------------------------
+   gammaln : Lanczos. gammaincQ : fonction gamma incomplète régularisée
+   supérieure Q(a,x) (série pour x < a+1, fraction continue sinon).
+   Vérifiés contre les tables du khi-deux et de la loi normale.          */
+
+function gammaln(x){
+  const c = [76.18009172947146,-86.50532032941677,24.01409824083091,
+             -1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+  let y = x, tmp = x + 5.5;
+  tmp -= (x + 0.5) * Math.log(tmp);
+  let ser = 1.000000000190015;
+  for(let j = 0; j < 6; j++) ser += c[j] / ++y;
+  return -tmp + Math.log(2.5066282746310005 * ser / x);
+}
+
+function gammaincQ(a, x){
+  if(x <= 0) return 1;
+  if(x < a + 1){
+    let ap = a, sum = 1/a, del = sum;
+    for(let n = 0; n < 2000; n++){
+      ap++; del *= x/ap; sum += del;
+      if(Math.abs(del) < Math.abs(sum) * 1e-16) break;
+    }
+    return 1 - sum * Math.exp(-x + a*Math.log(x) - gammaln(a));
+  }
+  const FPMIN = 1e-300;
+  let b = x + 1 - a, c = 1/FPMIN, d = 1/b, h = d;
+  for(let i = 1; i <= 2000; i++){
+    const an = -i * (i - a);
+    b += 2;
+    d = an*d + b; if(Math.abs(d) < FPMIN) d = FPMIN;
+    c = b + an/c; if(Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1/d;
+    const del = d*c; h *= del;
+    if(Math.abs(del - 1) < 1e-16) break;
+  }
+  return h * Math.exp(-x + a*Math.log(x) - gammaln(a));
+}
+
+// P(khi-deux > x) à df degrés de liberté
+const chiSqP = (x, df) => gammaincQ(df/2, x/2);
+
+function erfc(x){
+  const z = Math.abs(x), t = 2/(2 + z);
+  const ans = t * Math.exp(-z*z - 1.26551223 + t*(1.00002368 + t*(0.37409196 + t*(0.09678418 +
+    t*(-0.18628806 + t*(0.27886807 + t*(-1.13520398 + t*(1.48851587 +
+    t*(-0.82215223 + t*0.17087277)))))))));
+  return x >= 0 ? ans : 2 - ans;
+}
+
+// p bilatérale d'un écart réduit z sous la loi normale
+const twoSidedP = z => erfc(Math.abs(z) / Math.SQRT2);
+
+/* ---- mise en forme ---------------------------------------------------- */
+const nf   = n => n.toLocaleString("fr-FR");
+const pc   = (x, d = 4) => x.toFixed(d).replace(".", ",") + " %";
+const sg   = (x, d = 2) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(d).replace(".", ",");
+const pval = p => p < 1e-4 ? p.toExponential(2).replace(".", ",")
+                           : p.toFixed(4).replace(".", ",");
+
+const P_REPEAT = 18/37;   // probabilité qu'une couleur (rouge ou noir) se répète
+const Q_BREAK  = 19/37;   // probabilité qu'une série de cette couleur s'arrête
+const RUN_BINS = 9;       // longueurs détaillées 1..9, puis « 10 et plus »
+const ALPHA    = 0.01;    // seuil de signification retenu
+
+const AUDIT = {running:false, result:null, sort:"num"};
+
+/* ---- exécution des tirages (par blocs, pour ne pas figer l'onglet) ----- */
+async function runAudit(N, onProgress){
+  const numCounts = new Int32Array(37);
+  const MAXRUN    = 60;
+  const redRuns   = new Int32Array(MAXRUN + 2);   // dernière case = débordement
+  const blackRuns = new Int32Array(MAXRUN + 2);
+  let curColor = null, curLen = 0, maxRed = 0, maxBlack = 0;
+
+  const flushRun = () => {
+    if(curColor === "red"){
+      redRuns[Math.min(curLen, MAXRUN + 1)]++;
+      if(curLen > maxRed) maxRed = curLen;
+    } else if(curColor === "black"){
+      blackRuns[Math.min(curLen, MAXRUN + 1)]++;
+      if(curLen > maxBlack) maxBlack = curLen;
+    }
+    // les séries de vert (le zéro) ne sont pas comptabilisées
+  };
+
+  const CHUNK = 100000;
+  const t0 = performance.now();
+  for(let done = 0; done < N; ){
+    const upto = Math.min(N, done + CHUNK);
+    for(let i = done; i < upto; i++){
+      const n = spinNumber();
+      numCounts[n]++;
+      const c = n === 0 ? "green" : RED.has(n) ? "red" : "black";
+      if(c === curColor) curLen++;
+      else { flushRun(); curColor = c; curLen = 1; }
+    }
+    done = upto;
+    onProgress(done / N);
+    await new Promise(r => setTimeout(r, 0));   // rend la main au navigateur
+  }
+  flushRun();                                    // clôture la dernière série
+  const ms = Math.round(performance.now() - t0);
+
+  /* --- couleurs --- */
+  const green = numCounts[0];
+  let red = 0, black = 0;
+  for(let n = 1; n <= 36; n++){
+    if(RED.has(n)) red += numCounts[n]; else black += numCounts[n];
+  }
+  const sdRB = Math.sqrt(N * (18/37) * (19/37));
+  const sdG  = Math.sqrt(N * (1/37) * (36/37));
+  const colors = [
+    {key:"red",   label:"Rouge",   css:"var(--red)",   o:red,   e:N*18/37, sd:sdRB, th:100*18/37},
+    {key:"black", label:"Noir",    css:"#2f3742",      o:black, e:N*18/37, sd:sdRB, th:100*18/37},
+    {key:"green", label:"Vert (0)",css:"var(--green)", o:green, e:N/37,    sd:sdG,  th:100/37}
+  ].map(c => ({...c, pct:100*c.o/N, z:(c.o - c.e)/c.sd}));
+
+  /* --- test direct rouge contre noir ---
+     Conditionnellement au nombre de tours non nuls, rouge suit une binomiale
+     de paramètre 1/2 : le test se réduit à z = (R − N) / racine(R + N).      */
+  const nRB = red + black;
+  const zRB = (red - black) / Math.sqrt(nRB);
+  const pRB = twoSidedP(zRB);
+
+  /* --- fréquence de chaque numéro + khi-deux d'ajustement (36 ddl) --- */
+  const expNum = N/37, sdNum = Math.sqrt(N * (1/37) * (36/37));
+  const numbers = [];
+  let chi2Num = 0;
+  for(let n = 0; n <= 36; n++){
+    const o = numCounts[n];
+    chi2Num += (o - expNum) * (o - expNum) / expNum;
+    numbers.push({n, color:colorOf(n), o, pct:100*o/N, z:(o - expNum)/sdNum});
+  }
+  const pNum = chiSqP(chi2Num, 36);
+
+  /* --- longueurs de séries ---
+     Une série en cours se prolonge avec la probabilité 18/37 et s'arrête avec
+     la probabilité 19/37 : sa longueur suit une loi géométrique
+     P(L = k) = p^(k−1) · q. On conditionne au nombre de séries observées.    */
+  const runStats = (runs, maxObserved) => {
+    let total = 0;
+    for(let k = 1; k < runs.length; k++) total += runs[k];
+    // Affichage : toujours les longueurs 1..9 puis « 10 et plus ».
+    const bins = [];
+    for(let k = 1; k <= RUN_BINS; k++){
+      const prob = Math.pow(P_REPEAT, k-1) * Q_BREAK;
+      bins.push({k:String(k), o:runs[k], e:total*prob, pct:100*runs[k]/total, th:100*prob});
+    }
+    let oTail = 0;
+    for(let k = RUN_BINS + 1; k < runs.length; k++) oTail += runs[k];
+    const probTail = Math.pow(P_REPEAT, RUN_BINS);
+    bins.push({k:"10 et +", o:oTail, e:total*probTail, pct:100*oTail/total, th:100*probTail});
+
+    // Test : le khi-deux exige un effectif attendu d'au moins 5 par classe. Sur un
+    // petit nombre de tirages on regroupe donc les longueurs rares dans la queue.
+    let B = RUN_BINS;
+    while(B > 1 && total * Math.pow(P_REPEAT, B-1) * Q_BREAK < 5) B--;
+    let chi2 = 0;
+    for(let k = 1; k <= B; k++){
+      const e = total * Math.pow(P_REPEAT, k-1) * Q_BREAK;
+      chi2 += (runs[k] - e) * (runs[k] - e) / e;
+    }
+    let oT = 0;
+    for(let k = B + 1; k < runs.length; k++) oT += runs[k];
+    const eT = total * Math.pow(P_REPEAT, B);
+    let df = B;
+    if(eT >= 5) chi2 += (oT - eT) * (oT - eT) / eT; else df = B - 1;
+    const valid = df >= 1 && total > 0;
+    return {total, bins, chi2, df, valid,
+            p: valid ? chiSqP(chi2, df) : NaN, max:maxObserved};
+  };
+
+  return {
+    N, ms, colors, red, black, green, nRB, zRB, pRB,
+    numbers, chi2Num, pNum,
+    runsRed:   runStats(redRuns,   maxRed),
+    runsBlack: runStats(blackRuns, maxBlack)
+  };
+}
+
+/* ---- graphique des écarts par numéro ----------------------------------
+   Une seule série (l'écart réduit), donc une seule couleur ; le signe est
+   déjà porté par le sens de la barre. Seuls les numéros hors de ±3 σ
+   passent en couleur de statut, et ils sont alors étiquetés directement. */
+
+const VIZ = {series:"#3987e5", critical:"#d03b3b", grid:"#2a3240",
+             axis:"#3d4757", ink:"#98a3b3", band2:"rgba(255,255,255,.05)",
+             band3:"rgba(255,255,255,.03)"};
+
+function drawAuditChart(numbers){
+  const cv = $("auditChart");
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = cv.clientHeight;
+  if(!W) return;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+
+  const PL = 40, PR = 12, PT = 16, PB = 30;
+  const iw = W - PL - PR, ih = H - PT - PB;
+  const maxAbs = Math.max(4, Math.ceil(Math.max(...numbers.map(d => Math.abs(d.z))) + 0.5));
+  const Y  = z => PT + ih/2 - (z / maxAbs) * (ih/2);
+  const slot = iw / 37;
+  const bw = Math.max(3, slot - 2);            // 2 px de fond entre les barres
+
+  // bandes de tolérance ±2 σ et ±3 σ
+  g.fillStyle = VIZ.band3; g.fillRect(PL, Y(3), iw, Y(-3) - Y(3));
+  g.fillStyle = VIZ.band2; g.fillRect(PL, Y(2), iw, Y(-2) - Y(2));
+
+  // grille pleine, en retrait
+  g.strokeStyle = VIZ.grid; g.lineWidth = 1;
+  g.fillStyle = VIZ.ink; g.font = "10px system-ui,sans-serif";
+  g.textAlign = "right"; g.textBaseline = "middle";
+  const step = Math.max(1, Math.ceil(maxAbs / 5));   // évite un axe surchargé
+  for(let z = step; z <= maxAbs; z += step){
+    for(const v of [z, -z]){
+      const y = Math.round(Y(v)) + .5;
+      g.beginPath(); g.moveTo(PL, y); g.lineTo(W - PR, y); g.stroke();
+      g.fillText(sg(v, 0) + "σ", PL - 6, Y(v));
+    }
+  }
+
+  // barres
+  numbers.forEach((d, i) => {
+    const x = PL + i*slot + (slot - bw)/2;
+    const y0 = Y(0), y1 = Y(d.z);
+    const h = Math.max(1, Math.abs(y1 - y0));
+    const up = d.z >= 0;
+    const r = Math.min(4, bw/2, h);
+    g.fillStyle = Math.abs(d.z) > 3 ? VIZ.critical : VIZ.series;
+    g.beginPath();
+    // extrémité arrondie côté valeur, base carrée sur la ligne du zéro
+    if(up) g.roundRect(x, y0 - h, bw, h, [r, r, 0, 0]);
+    else   g.roundRect(x, y0, bw, h, [0, 0, r, r]);
+    g.fill();
+  });
+
+  // ligne de base
+  g.strokeStyle = VIZ.axis; g.lineWidth = 1;
+  const yb = Math.round(Y(0)) + .5;
+  g.beginPath(); g.moveTo(PL, yb); g.lineTo(W - PR, yb); g.stroke();
+
+  // axe des numéros
+  g.fillStyle = VIZ.ink; g.textAlign = "center"; g.textBaseline = "top";
+  g.font = "9px system-ui,sans-serif";
+  numbers.forEach((d, i) => g.fillText(String(d.n), PL + i*slot + slot/2, PT + ih + 8));
+  g.font = "10px system-ui,sans-serif";
+  g.fillText("numéro", PL + iw/2, PT + ih + 20);
+
+  // étiquette directe des seuls numéros hors ±3 σ (le statut ne repose jamais
+  // sur la couleur seule)
+  g.fillStyle = VIZ.critical; g.font = "700 10px system-ui,sans-serif";
+  numbers.forEach((d, i) => {
+    if(Math.abs(d.z) <= 3) return;
+    g.textBaseline = d.z >= 0 ? "bottom" : "top";
+    g.fillText(String(d.n), PL + i*slot + slot/2, Y(d.z) + (d.z >= 0 ? -3 : 3));
+  });
+
+  cv._geom = {PL, slot, numbers};
+}
+
+/* ---- infobulle du graphique ---- */
+function initAuditTip(){
+  const cv = $("auditChart"), tip = $("auditTip");
+  if(!cv || !tip || cv._tipReady) return;
+  cv._tipReady = true;
+  cv.addEventListener("mousemove", e => {
+    const gm = cv._geom; if(!gm) return;
+    const r = cv.getBoundingClientRect();
+    const i = Math.floor((e.clientX - r.left - gm.PL) / gm.slot);
+    if(i < 0 || i > 36){ tip.style.opacity = 0; return; }
+    const d = gm.numbers[i];
+    tip.innerHTML =
+      `<b>Numéro ${d.n}</b> · ${colorLabel(d.n)}<br>` +
+      `${nf(d.o)} sorties — ${pc(d.pct)}<br>` +
+      `théorique ${pc(100/37)} · écart ${sg(d.z)} σ`;
+    tip.style.opacity = 1;
+    const wrap = cv.parentElement.getBoundingClientRect();
+    let left = e.clientX - wrap.left + 12;
+    if(left + tip.offsetWidth > wrap.width - 4) left = e.clientX - wrap.left - tip.offsetWidth - 12;
+    tip.style.left = left + "px";
+    tip.style.top  = (e.clientY - wrap.top + 12) + "px";
+  });
+  cv.addEventListener("mouseleave", () => { tip.style.opacity = 0; });
+}
+
+/* ---- rendu des résultats ---------------------------------------------- */
+function renderAudit(R){
+  const numsSorted = AUDIT.sort === "dev"
+    ? [...R.numbers].sort((a,b) => Math.abs(b.z) - Math.abs(a.z))
+    : R.numbers;
+
+  const colorRows = R.colors.map(c => `
+    <tr>
+      <td><span class="swatch" style="background:${c.css}"></span>${c.label}</td>
+      <td>${nf(c.o)}</td>
+      <td>${pc(c.pct)}</td>
+      <td>${pc(c.th)}</td>
+      <td>${sg(c.pct - c.th, 4)} pt</td>
+      <td class="${Math.abs(c.z) > 3 ? "out" : ""}">${sg(c.z)} σ</td>
+    </tr>`).join("");
+
+  const numRows = numsSorted.map(d => `
+    <tr>
+      <td><span class="swatch" style="background:${
+        d.color === "red" ? "var(--red)" : d.color === "black" ? "#2f3742" : "var(--green)"
+      }"></span>${d.n}</td>
+      <td>${nf(d.o)}</td>
+      <td>${pc(d.pct)}</td>
+      <td>${pc(100/37)}</td>
+      <td>${sg(d.pct - 100/37, 4)} pt</td>
+      <td class="${Math.abs(d.z) > 3 ? "out" : ""}">${sg(d.z)} σ</td>
+    </tr>`).join("");
+
+  const runRows = R.runsRed.bins.map((b, i) => {
+    const bb = R.runsBlack.bins[i];
+    return `<tr>
+      <td>${b.k}${b.k === "1" ? " (isolé)" : " de suite"}</td>
+      <td>${nf(b.o)}</td><td>${pc(b.pct, 3)}</td>
+      <td class="sep">${nf(bb.o)}</td><td>${pc(bb.pct, 3)}</td>
+      <td class="sep">${pc(b.th, 3)}</td>
+    </tr>`;
+  }).join("");
+
+  const tests = [
+    {name:"Uniformité des 37 numéros (khi-deux, 36 ddl)", stat:`χ² = ${R.chi2Num.toFixed(2).replace(".", ",")}`, p:R.pNum},
+    {name:"Équilibre rouge / noir (écart réduit bilatéral)", stat:`z = ${sg(R.zRB)}`, p:R.pRB},
+    {name:`Longueur des séries rouges (khi-deux, ${R.runsRed.df} ddl)`,
+     stat:`χ² = ${R.runsRed.chi2.toFixed(2).replace(".", ",")}`, p:R.runsRed.p, valid:R.runsRed.valid},
+    {name:`Longueur des séries noires (khi-deux, ${R.runsBlack.df} ddl)`,
+     stat:`χ² = ${R.runsBlack.chi2.toFixed(2).replace(".", ",")}`, p:R.runsBlack.p, valid:R.runsBlack.valid}
+  ];
+  const failed = tests.filter(t => t.valid !== false && t.p < ALPHA);
+  const ok = failed.length === 0;
+
+  $("auditOut").innerHTML = `
+    <div class="verdict ${ok ? "ok" : "bad"}">
+      <div class="verdict-title">${ok ? "✅ Aucun biais détecté" : "⚠️ Écart significatif détecté"}</div>
+      <div class="verdict-hero">Rouge ${pc(R.colors[0].pct, 3)} &nbsp;·&nbsp; Noir ${pc(R.colors[1].pct, 3)}</div>
+      <ul>
+        <li>Différence rouge − noir : <b>${sg(R.red - R.black, 0)}</b> tirages sur ${nf(R.nRB)} tours non nuls,
+            soit <b>${sg(R.zRB)} σ</b> (p = ${pval(R.pRB)}). Une roulette parfaitement équilibrée produit
+            un écart typique de ± ${nf(Math.round(Math.sqrt(R.nRB)))} tirages : l'écart observé est
+            ${Math.abs(R.zRB) < 2 ? "<b>dans</b>" : "<b>hors de</b>"} la fluctuation normale.</li>
+        <li>${failed.length === 0
+              ? `Les <b>4 tests</b> passent au seuil de ${(100*ALPHA).toFixed(0)} %.`
+              : `Test(s) en échec au seuil de ${(100*ALPHA).toFixed(0)} % : <b>${failed.map(f => f.name).join(", ")}</b>.`}</li>
+        <li><b>Pouvoir de détection :</b> avec ${nf(R.N)} tirages, ce test repère de façon fiable
+            tout déséquilibre dépassant <b>${(100*2.5758/Math.sqrt(R.nRB)/2).toFixed(3).replace(".", ",")} point</b>
+            sur la part du rouge. Un biais plus petit que cela resterait invisible ici :
+            « aucun biais détecté » signifie « aucun biais à cette résolution », pas « biais nul ».
+            Augmentez le nombre de tirages pour affiner.</li>
+        <li>${nf(R.N)} tirages en ${nf(R.ms)} ms.
+            ${ok ? "Conclusion : <b>rien ne permet d'affirmer que le générateur favorise le rouge ou le noir.</b>"
+                 : "Relancez l'audit : au seuil de 1 %, un générateur parfait échoue quand même à environ 1 test sur 100 par pur hasard."}</li>
+      </ul>
+    </div>
+
+    <h3>Tests statistiques</h3>
+    <div class="tbl-wrap" style="max-height:none">
+      <table class="audit-table">
+        <thead><tr><th>Test</th><th>Statistique</th><th>p-value</th><th>Verdict (seuil 1 %)</th></tr></thead>
+        <tbody>${tests.map(t => {
+          const na = t.valid === false;
+          return `<tr>
+            <td>${t.name}</td><td>${t.stat}</td><td>${na ? "—" : pval(t.p)}</td>
+            <td class="${!na && t.p < ALPHA ? "out" : ""}">${
+              na ? "trop peu de tirages" : t.p < ALPHA ? "écart significatif" : "conforme"}</td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>
+    </div>
+    <p class="note">La p-value est la probabilité d'observer un écart au moins aussi grand
+    <i>si le générateur est parfaitement équilibré</i>. Une valeur élevée confirme la conformité ;
+    une valeur inférieure à 0,01 signale un écart anormal.</p>
+
+    <h3>1 · Répartition des couleurs</h3>
+    <div class="tbl-wrap" style="max-height:none">
+      <table class="audit-table">
+        <thead><tr><th>Couleur</th><th>Sorties</th><th>% obtenu</th><th>% théorique</th><th>Écart</th><th>Écart réduit</th></tr></thead>
+        <tbody>${colorRows}</tbody>
+        <tfoot><tr><td>Total</td><td>${nf(R.N)}</td><td>100,0000 %</td><td>100,0000 %</td><td>—</td><td>—</td></tr></tfoot>
+      </table>
+    </div>
+
+    <h3>2 · Écart de chaque numéro par rapport à sa fréquence théorique</h3>
+    <div id="auditChartWrap">
+      <canvas id="auditChart"></canvas>
+      <div class="chart-tip" id="auditTip"></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:${VIZ.series}"></i>écart réduit du numéro</span>
+      <span><i style="background:${VIZ.critical}"></i>hors de ± 3 σ (étiqueté)</span>
+      <span><i style="background:rgba(255,255,255,.12)"></i>bandes ± 2 σ et ± 3 σ</span>
+      <span>Sur 37 numéros, on attend en moyenne ~1,7 numéro hors de ± 2 σ et ~0,1 hors de ± 3 σ.</span>
+    </div>
+
+    <h3>3 · Fréquence de chaque numéro
+      <span style="text-transform:none;letter-spacing:0;margin-left:10px">
+        <button id="sortNum" ${AUDIT.sort === "num" ? 'style="border-color:var(--accent)"' : ""}>par numéro</button>
+        <button id="sortDev" ${AUDIT.sort === "dev" ? 'style="border-color:var(--accent)"' : ""}>par écart décroissant</button>
+      </span>
+    </h3>
+    <div class="tbl-wrap">
+      <table class="audit-table">
+        <thead><tr><th>Numéro</th><th>Sorties</th><th>% obtenu</th><th>% théorique</th><th>Écart</th><th>Écart réduit</th></tr></thead>
+        <tbody>${numRows}</tbody>
+      </table>
+    </div>
+
+    <h3>4 · Longueur des séries : rouge et noir côte à côte</h3>
+    <div class="tbl-wrap" style="max-height:none">
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th rowspan="2" style="vertical-align:bottom">Série</th>
+            <th colspan="2"><span class="swatch" style="background:var(--red)"></span>Rouge</th>
+            <th colspan="2" class="sep"><span class="swatch" style="background:#2f3742"></span>Noir</th>
+            <th rowspan="2" class="sep" style="vertical-align:bottom">% théorique</th>
+          </tr>
+          <tr><th>séries</th><th>%</th><th class="sep">séries</th><th>%</th></tr>
+        </thead>
+        <tbody>${runRows}</tbody>
+        <tfoot><tr>
+          <td>Total des séries</td>
+          <td>${nf(R.runsRed.total)}</td><td>100 %</td>
+          <td class="sep">${nf(R.runsBlack.total)}</td><td>100 %</td>
+          <td class="sep">100 %</td>
+        </tr></tfoot>
+      </table>
+    </div>
+    <p class="note">
+      Une série s'arrête dès que la couleur change <b>ou que le zéro sort</b>.
+      Une série en cours se prolonge avec la probabilité 18/37 ≈ 48,65 % : sa longueur suit donc une loi
+      géométrique, identique pour le rouge et pour le noir — d'où une colonne « % théorique » commune
+      aux deux. Plus longue série observée : <b>${R.runsRed.max} rouges</b> et
+      <b>${R.runsBlack.max} noirs</b> d'affilée.
+      Les pourcentages sont rapportés au nombre total de séries de la couleur concernée.
+    </p>
+    <p class="note"><b>À retenir :</b> l'absence de biais entre rouge et noir ne rend pas le jeu
+    équitable pour autant. Le désavantage du joueur ne vient pas d'un déséquilibre des couleurs,
+    mais du <b>zéro</b> : il occupe ${pc(100/37)} des cases et fait perdre les chances simples,
+    ce qui fixe l'avantage de la maison à 2,70 %.</p>`;
+
+  initAuditTip();
+  drawAuditChart(R.numbers);
+  $("sortNum").addEventListener("click", () => { AUDIT.sort = "num"; renderAudit(R); });
+  $("sortDev").addEventListener("click", () => { AUDIT.sort = "dev"; renderAudit(R); });
+}
+
+$("runAuditBtn").addEventListener("click", async () => {
+  if(AUDIT.running) return;
+  const N = Math.min(20000000, Math.max(1000, Math.floor(Number($("auditN").value) || 1000000)));
+  AUDIT.running = true;
+  $("runAuditBtn").disabled = true;
+  const bar = $("auditProgress").firstElementChild;
+  bar.style.width = "0%";
+  $("auditStatus").textContent = "tirage en cours…";
+  try {
+    const R = await runAudit(N, f => {
+      bar.style.width = (100*f).toFixed(1) + "%";
+      $("auditStatus").textContent = `${nf(Math.round(f*N))} / ${nf(N)}`;
+    });
+    AUDIT.result = R;
+    $("auditStatus").textContent = `terminé en ${nf(R.ms)} ms`;
+    renderAudit(R);
+  } finally {
+    AUDIT.running = false;
+    $("runAuditBtn").disabled = false;
+  }
+});
+
+/* =====================================================================
+   11. ONGLETS
+   ===================================================================== */
+
+const TABS = {manual:["tabManual","viewManual"], auto:["tabAuto","viewAuto"], audit:["tabAudit","viewAudit"]};
+function showTab(which){
+  for(const [name, [tab, view]] of Object.entries(TABS)){
+    const on = name === which;
+    $(tab).setAttribute("aria-selected", String(on));
+    $(view).hidden = !on;
+  }
+  // les canvas ne peuvent se dimensionner qu'une fois leur panneau visible
+  if(which === "auto"  && lastDrawn)     drawChart(lastDrawn.curve, lastDrawn.cfg);
+  if(which === "audit" && AUDIT.result)  drawAuditChart(AUDIT.result.numbers);
+}
+Object.keys(TABS).forEach(name => $(TABS[name][0]).addEventListener("click", () => showTab(name)));
+
+window.addEventListener("resize", () => {
+  if(lastDrawn    && !$("viewAuto").hidden)  drawChart(lastDrawn.curve, lastDrawn.cfg);
+  if(AUDIT.result && !$("viewAudit").hidden) drawAuditChart(AUDIT.result.numbers);
+});
+
+renderAll();
+</script>
+</body>
+</html>
